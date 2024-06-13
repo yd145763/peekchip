@@ -115,7 +115,7 @@ def visualize_predictions(image, results):
     class_counts = Counter(detected_classes)
     
     # Print the class name and the number of times each class name is detected
-    st.write("Detected Class Name Counts:")
+    st.write("Detected Device:")
     for class_name, count in class_counts.items():
         st.write(f"{class_name}: {count}")
 
@@ -123,7 +123,7 @@ def visualize_predictions(image, results):
 
 # Main function
 def main():
-    st.title("Image Prediction with YOLO")
+    st.title("PeekChip")
 
     # File uploader component
     uploaded_file = st.file_uploader("Choose an image...", type=["jpg", "jpeg", "png"])
