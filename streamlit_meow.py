@@ -27,7 +27,7 @@ class_colors = ['red', 'green', 'blue', 'orange', 'purple', 'cyan', 'magenta', '
 # Function to authenticate and create a Google Drive service
 def create_drive_service():
     SCOPES = ['https://www.googleapis.com/auth/drive']
-    SERVICE_ACCOUNT_FILE = "C:\\Users\\limyu\\Downloads\\orbital-expanse-310515-963cd8243098.json"  # Update with your service account file
+    SERVICE_ACCOUNT_FILE = "https://github.com/yd145763/peekchip/raw/main/orbital-expanse-310515-963cd8243098.json"  # Update with your service account file
 
     credentials = service_account.Credentials.from_service_account_file(
         SERVICE_ACCOUNT_FILE, scopes=SCOPES)
