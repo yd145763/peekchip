@@ -123,10 +123,14 @@ def visualize_predictions(image, results):
 
 # Main function
 def main():
+    st.sidebar.title("Contact Information")
+    st.sidebar.write("**Creator:** Lim Yu Dian")
+    st.sidebar.write("**Email:** limyudian@gmail.com")
+
     st.title("PeekChip")
 
     # File uploader component
-    uploaded_file = st.file_uploader("Choose an image...", type=["jpg", "jpeg", "png"])
+    uploaded_file = st.file_uploader("Choose an image (optical microscope images of SiPh chips preferred)", type=["jpg", "jpeg", "png"])
 
     if uploaded_file is not None:
         # Display the uploaded image
