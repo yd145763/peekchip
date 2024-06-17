@@ -24,15 +24,32 @@ model = load_model()
 class_names =  ['Good_Grating','Ring_Resonator','Fiber','Taper','Overetched_Grating','MMI','Bond_Pad','Electrode','OPA_Outlet','Detached_Grating']
 class_colors = ['red', 'green', 'blue', 'orange', 'purple', 'cyan', 'magenta', 'yellow', 'lime', 'pink']
 
+# Define the service account file as a dictionary
+SERVICE_ACCOUNT_DICT = {
+    "type": st.secrets["type"],
+    "project_id": st.secrets["project_id"],
+    "private_key_id": st.secrets["private_key_id"],
+    "private_key": st.secrets["private_key"],
+    "client_email": st.secrets["client_email"],
+    "client_id": st.secrets["client_id"],
+    "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+    "token_uri": "https://accounts.google.com/o/oauth2/token",
+    "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+    "client_x509_cert_url": st.secrets["client_x509_cert_url"],
+    "universe_domain": "googleapis.com"
+}
+
+
+
 # Function to authenticate and create a Google Drive service
 def create_drive_service():
     SCOPES = ['https://www.googleapis.com/auth/drive']
-    SERVICE_ACCOUNT_FILE = "C:\\Users\\limyu\\Downloads\\orbital-expanse-310515-963cd8243098.json"  # Update with your service account file
 
-    credentials = service_account.Credentials.from_service_account_file(
-        SERVICE_ACCOUNT_FILE, scopes=SCOPES)
+    credentials = service_account.Credentials.from_service_account_info(
+        SERVICE_ACCOUNT_DICT, scopes=SCOPES)
     service = build('drive', 'v3', credentials=credentials)
     return service
+
 
 # Function to save the file to Google Drive
 def save_file_to_drive(service, folder_id, file_bytes, filename, mimetype):
@@ -98,7 +115,7 @@ def visualize_predictions(image, results):
     class_counts = Counter(detected_classes)
     
     # Print the class name and the number of times each class name is detected
-    st.write("Detected Class Name Counts:")
+    st.write("Detected Device:")
     for class_name, count in class_counts.items():
         st.write(f"{class_name}: {count}")
 
@@ -106,10 +123,14 @@ def visualize_predictions(image, results):
 
 # Main function
 def main():
-    st.title("Image Prediction with YOLO")
+    st.sidebar.title("Contact Information")
+    st.sidebar.write("**Creator:** Lim Yu Dian")
+    st.sidebar.write("**Email:** limyudian@gmail.com")
+
+    st.title("PeekChip")
 
     # File uploader component
-    uploaded_file = st.file_uploader("Choose an image...", type=["jpg", "jpeg", "png"])
+    uploaded_file = st.file_uploader("Choose an image (optical microscope images of SiPh chips preferred)", type=["jpg", "jpeg", "png"])
 
     if uploaded_file is not None:
         # Display the uploaded image
