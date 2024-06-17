@@ -1,3 +1,10 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Mon Jun 17 18:00:01 2024
+
+@author: limyu
+"""
+
 import streamlit as st
 from PIL import Image
 import matplotlib.pyplot as plt
@@ -6,24 +13,14 @@ from collections import Counter
 from ultralytics import YOLO
 from googleapiclient.discovery import build
 from google.oauth2 import service_account
-from googleapiclient.http import MediaIoBaseUpload
+from googleapiclient.http import MediaIoBaseDownload, MediaIoBaseUpload
 import io
 import datetime
+import tempfile  # Import tempfile to create temporary files
 
-# URL to the weights file on GitHub
-weights_url = "https://github.com/yd145763/EPTC2024GenerativeDNN/raw/main/best.pt"
-
-# Load the YOLO model
-@st.cache_resource
-def load_model():
-    return YOLO(weights_url)
-
-model = load_model()
-
-# Define the class names
-class_names = ['Good_Grating','Ring_Resonator','Fiber','Taper','Overetched_Grating','MMI','Bond_Pad','OPA_Outlet','Detached_Grating', 'PD_with_Pads', 'Bonded_Pad']
-class_colors = ['red', 'green', 'blue', 'orange', 'purple', 'cyan', 'magenta', 'yellow', 'lime', 'pink', 'white']
-
+# Define the class names and colors
+class_names = ['Good_Grating', 'Ring_Resonator', 'Fiber', 'Taper', 'Overetched_Grating', 'MMI', 'Bond_Pad', 'Electrode', 'OPA_Outlet', 'Detached_Grating']
+class_colors = ['red', 'green', 'blue', 'orange', 'purple', 'cyan', 'magenta', 'yellow', 'lime', 'pink']
 
 # Define the service account file as a dictionary
 SERVICE_ACCOUNT_DICT = {
@@ -40,48 +37,63 @@ SERVICE_ACCOUNT_DICT = {
     "universe_domain": "googleapis.com"
 }
 
-
+# Google Drive folder IDs
+IMAGE_FOLDER_ID = '1lyak-BK1_m8k6OMbiAREPqK5Xjb7NoJa'  # Update with your images folder ID
+LABELS_FOLDER_ID = '1s2D7CXzyi48ym4gQH8Ylc9sgpJk0GTIR'  # Update with your labels folder ID
 
 # Function to authenticate and create a Google Drive service
 def create_drive_service():
     SCOPES = ['https://www.googleapis.com/auth/drive']
-
-    credentials = service_account.Credentials.from_service_account_info(
-        SERVICE_ACCOUNT_DICT, scopes=SCOPES)
+    credentials = service_account.Credentials.from_service_account_info(SERVICE_ACCOUNT_DICT, scopes=SCOPES)
     service = build('drive', 'v3', credentials=credentials)
     return service
 
+# Function to download a file from Google Drive and return it as a BytesIO object
+def download_file_from_drive(service, file_id):
+    request = service.files().get_media(fileId=file_id)
+    downloaded_file = io.BytesIO()
+    downloader = MediaIoBaseDownload(downloaded_file, request)
+    done = False
+    while not done:
+        status, done = downloader.next_chunk()
+        print(f"Download {int(status.progress() * 100)}%.")
+    downloaded_file.seek(0)
+    return downloaded_file
+
+# Load the YOLO model
+@st.cache_resource
+def load_model():
+    service = create_drive_service()
+    weights_file_id = '1--UOa52iTPXqvuhMLv7W3hAD9iZ11NC2'  # Replace with your weights file ID
+    weights_file = download_file_from_drive(service, weights_file_id)
+    
+    # Write the BytesIO contents to a temporary file
+    with tempfile.NamedTemporaryFile(delete=False, suffix='.pt') as tmp_file:
+        tmp_file.write(weights_file.read())
+        tmp_file_path = tmp_file.name
+    
+    return YOLO(tmp_file_path)
+
+model = load_model()
 
 # Function to save the file to Google Drive
 def save_file_to_drive(service, folder_id, file_bytes, filename, mimetype):
-    # Create a file metadata object
     file_metadata = {
         'name': filename,
         'parents': [folder_id]
     }
     media = MediaIoBaseUpload(file_bytes, mimetype=mimetype)
-
-    # Upload the file
     file = service.files().create(body=file_metadata, media_body=media, fields='id').execute()
 
 # Function to visualize predictions and return YOLO formatted labels
 def visualize_predictions(image, results):
-    # Convert the image to grayscale
     image = image.convert("L")
-    
-    # Create figure and axes without borders, margins, and axes
     fig, ax = plt.subplots(1)
     ax.imshow(image, cmap="gray")
-    
-    # Remove borders and axes
     ax.axis('off')
     fig.subplots_adjust(left=0, right=1, top=1, bottom=0)
-    
     image_width, image_height = image.size
-    
-    # Store detected class names in a list
     detected_classes = []
-
     yolo_labels = []
 
     for result in results:
@@ -91,73 +103,43 @@ def visualize_predictions(image, results):
             conf = box.conf[0]
             class_name = class_names[class_id]
             detected_classes.append(class_name)
-            
-            # YOLO format: class_id x_center y_center width height (normalized)
             x_center = ((x_min + x_max) / 2) / image_width
             y_center = ((y_min + y_max) / 2) / image_height
             width = (x_max - x_min) / image_width
             height = (y_max - y_min) / image_height
             yolo_labels.append(f"{class_id} {x_center} {y_center} {width} {height}")
-            
-            # Choose the color for the current class
             color = class_colors[class_id]
-            
-            # Create a Rectangle patch
             rect = patches.Rectangle((x_min, y_min), x_max - x_min, y_max - y_min, linewidth=2, edgecolor=color, facecolor='none')
-            # Add the patch to the Axes
             ax.add_patch(rect)
-            # Optionally, you can add class_id and confidence score text
-            # ax.text(x_min, y_min, f'{class_names[class_id]}: {conf:.2f}', color='white', fontsize=8, backgroundcolor=color)
 
-    # Display the plot
     st.pyplot(fig)
-    
-    # Count the occurrences of each class name
     class_counts = Counter(detected_classes)
-    
-    # Print the class name and the number of times each class name is detected
     st.write("Detected Device:")
     for class_name, count in class_counts.items():
         st.write(f"{class_name}: {count}")
 
-    return fig, yolo_labels  # Return the figure and YOLO labels for saving
+    return fig, yolo_labels
 
 # Main function
 def main():
     st.sidebar.title("Contact Information")
     st.sidebar.write("**Creator:** Lim Yu Dian")
     st.sidebar.write("**Email:** limyudian@gmail.com")
-
     st.title("PeekChip")
-
-    # File uploader component
     uploaded_file = st.file_uploader("Choose an image (optical microscope images of SiPh chips preferred)", type=["jpg", "jpeg", "png"])
 
     if uploaded_file is not None:
-        # Display the uploaded image
         image = Image.open(uploaded_file)
         st.image(image, caption='Uploaded Image.', use_column_width=True)
-
-        # Make predictions using the YOLO model
         results = model(image)
-
-        # Visualize the predictions and get YOLO labels
         fig, yolo_labels = visualize_predictions(image, results)
-
-        # Save the plot to Google Drive
         service = create_drive_service()
-        IMAGE_FOLDER_ID = '1s24y-sOFQh-AHcxNVihpOSXXG1bgze9F'  # Update with your images folder ID
-        LABELS_FOLDER_ID = '1s2D7CXzyi48ym4gQH8Ylc9sgpJk0GTIR'  # Update with your labels folder ID
         current_time = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
         filename = f"predicted_image_{current_time}.png"
-
-        # Save the image plot to Google Drive
         plot_bytes = io.BytesIO()
         fig.savefig(plot_bytes, format='png')
         plot_bytes.seek(0)
         save_file_to_drive(service, IMAGE_FOLDER_ID, plot_bytes, filename, 'image/png')
-
-        # Save the YOLO labels to Google Drive
         labels_filename = f"predicted_image_{current_time}.txt"
         labels_bytes = io.BytesIO('\n'.join(yolo_labels).encode())
         save_file_to_drive(service, LABELS_FOLDER_ID, labels_bytes, labels_filename, 'text/plain')
