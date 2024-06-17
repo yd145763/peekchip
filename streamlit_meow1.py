@@ -21,8 +21,9 @@ def load_model():
 model = load_model()
 
 # Define the class names
-class_names =  ['Good_Grating','Ring_Resonator','Fiber','Taper','Overetched_Grating','MMI','Bond_Pad','Electrode','OPA_Outlet','Detached_Grating']
-class_colors = ['red', 'green', 'blue', 'orange', 'purple', 'cyan', 'magenta', 'yellow', 'lime', 'pink']
+class_names = ['Good_Grating','Ring_Resonator','Fiber','Taper','Overetched_Grating','MMI','Bond_Pad','OPA_Outlet','Detached_Grating', 'PD_with_Pads', 'Bonded_Pad']
+class_colors = ['red', 'green', 'blue', 'orange', 'purple', 'cyan', 'magenta', 'yellow', 'lime', 'pink', 'white']
+
 
 # Define the service account file as a dictionary
 SERVICE_ACCOUNT_DICT = {
