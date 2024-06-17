@@ -124,7 +124,7 @@ def visualize_predictions(image, results):
 # Main function
 def main():
     st.sidebar.title("Contact Information")
-    st.sidebar.write("**Creator:** Lim Yu Dian")
+    st.sidebar.write("**Admin:** Lim Yu Dian")
     st.sidebar.write("**Email:** limyudian@gmail.com")
     st.title("PeekChip")
     uploaded_file = st.file_uploader("Choose an image (optical microscope images of SiPh chips preferred)", type=["jpg", "jpeg", "png"])
